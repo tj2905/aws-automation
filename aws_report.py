@@ -1,36 +1,55 @@
 import boto3
 from datetime import datetime
+from botocore.exceptions import NoCredentialsError, ClientError
 
 
 def get_ec2_status():
-    ec2 = boto3.client('ec2', region_name='ap-south-1')
-    response = ec2.describe_instances()
+    try:
+        ec2 = boto3.client('ec2', region_name='ap-south-1')
+        response = ec2.describe_instances()
 
-    instances = []
+        instances = []
+        for reservation in response['Reservations']:
+            for instance in reservation['Instances']:
+                instances.append({
+                    'id': instance['InstanceId'],
+                    'state': instance['State']['Name'],
+                    'type': instance['InstanceType']
+                })
 
-    for reservation in response['Reservations']:
-        for instance in reservation['Instances']:
-            instances.append({
-                'id': instance['InstanceId'],
-                'state': instance['State']['Name'],
-                'type': instance['InstanceType']
-            })
+        return instances
 
-    return instances
+    except NoCredentialsError:
+        print("ERROR: AWS credentials not found")
+        print("Fix: Run 'aws configure'")
+        return []
+
+    except ClientError as e:
+        print(f"ERROR: AWS error — {e}")
+        return []
 
 
 def get_s3_status():
-    s3 = boto3.client('s3')
-    response = s3.list_buckets()
+    try:
+        s3 = boto3.client('s3')
+        response = s3.list_buckets()
 
-    buckets = []
-    for bucket in response['Buckets']:
-        buckets.append({
-            'name': bucket['Name'],
-            'created': str(bucket['CreationDate'])
-        })
+        buckets = []
+        for bucket in response['Buckets']:
+            buckets.append({
+                'name': bucket['Name'],
+                'created': str(bucket['CreationDate'])
+            })
 
-    return buckets
+        return buckets
+
+    except NoCredentialsError:
+        print("ERROR: AWS credentials not found")
+        return []
+
+    except ClientError as e:
+        print(f"ERROR: AWS error — {e}")
+        return []
 
 
 def print_report():
@@ -39,7 +58,6 @@ def print_report():
     print(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 50)
 
-    # EC2 Report
     print("\nEC2 Instances:")
     instances = get_ec2_status()
 
@@ -50,7 +68,6 @@ def print_report():
             status = "🟢" if i['state'] == 'running' else "🔴"
             print(f" {status} {i['id']} | {i['state']} | {i['type']}")
 
-    # S3 Report
     print("\nS3 Buckets:")
     buckets = get_s3_status()
 
@@ -60,7 +77,6 @@ def print_report():
         for b in buckets:
             print(f" 📦 {b['name']}")
 
-    # Summary
     print("\nSummary:")
     running = sum(1 for i in instances if i['state'] == 'running')
     stopped = sum(1 for i in instances if i['state'] == 'stopped')
@@ -71,5 +87,4 @@ def print_report():
     print("=" * 50)
 
 
-# Run
 print_report()
