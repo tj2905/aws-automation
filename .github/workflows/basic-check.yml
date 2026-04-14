@@ -31,5 +31,3 @@ jobs:
 
       - name: Import check karo
         run: python -c "import boto3; import requests; print('Imports OK!')"
-      - name: Intentional fail test
-         run: python -c "import non_existent_module"
