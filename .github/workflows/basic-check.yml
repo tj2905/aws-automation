@@ -1,0 +1,33 @@
+name: Basic Python Check
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Code checkout karo
+        uses: actions/checkout@v3
+
+      - name: Python setup karo
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Dependencies install karo
+        run: pip install boto3 requests
+
+      - name: Python syntax check karo
+        run: |
+          python -m py_compile aws_report.py
+          python -m py_compile health_checker.py
+          python -m py_compile devops_monitor.py
+          echo "All Python files OK!"
+
+      - name: Import check karo
+        run: python -c "import boto3; import requests; print('Imports OK!')"
